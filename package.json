@@ -41,5 +41,10 @@
     "eslint": "^9.39.2",
     "eslint-config-expo": "^10.0.0",
     "typescript": "~5.9.2"
+  },
+  "overrides": {
+    "expo-three": {
+      "three": "$three"
+    }
   }
 }
