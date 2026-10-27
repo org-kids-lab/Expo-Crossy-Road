@@ -35,9 +35,13 @@ I created the models using the open source project [MagicaVoxel](https://ephtrac
 ## Getting started
 
 ```sh
-npm install            # or: bun install
-npx expo start --web   # press w, or open http://localhost:8081
+make install   # npm install
+make start     # web dev server → http://localhost:8081
+make           # list all commands (build, prod, fresh, typecheck, lint, …)
 ```
+
+`make start PORT=8090` uses another port. Without `make`:
+`npm install` (or `bun install`) and `npx expo start --web`.
 
 `package.json` contains an npm `overrides` entry for `expo-three` → `three`.
 `expo-three@8` still declares `peer three@^0.166.0` while this project uses
@@ -46,8 +50,7 @@ npx expo start --web   # press w, or open http://localhost:8081
 Production web build:
 
 ```sh
-npx expo export -p web   # outputs to dist/
-npx serve dist
+make prod   # = npx expo export -p web (→ dist/) + npx serve dist
 ```
 
 ### Controls

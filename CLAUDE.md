@@ -4,6 +4,8 @@ Voxel road-crossing game: Expo SDK 54 + expo-router, React Native Web, three.js 
 
 ## Commands
 
+A `Makefile` wraps the common commands (`make` lists them): `make install`, `make start` (web dev, `PORT=` overridable), `make fresh` (cleared Metro cache), `make build`, `make prod`, `make typecheck`, `make lint`. The underlying commands:
+
 - Install: `npm install` (needs the `overrides` for `expo-three` → `three` in package.json; do not remove it). `bun.lock` also exists from upstream; keep both lockfiles in sync if dependencies change.
 - Dev (web): `npx expo start --web` → http://localhost:8081
 - Production web build: `npx expo export -p web` (outputs `dist/`)
