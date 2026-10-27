@@ -1,4 +1,5 @@
 import { Dimensions } from "react-native";
+import { Group, Vector4 } from "three";
 
 import { swipeDirections } from "@/components/GestureView";
 import AudioManager from "./AudioManager";
@@ -10,6 +11,7 @@ import {
   CrossyScene,
 } from "./CrossyGame";
 import CrossyPlayer from "./CrossyPlayer";
+import ModelLoader from "./ModelLoader";
 import {
   CAMERA_EASING,
   DEBUG_CAMERA_CONTROLS,
@@ -396,6 +398,71 @@ export default class Engine {
       clearColor: sceneColor,
     });
 
+    try {
+      await this.warmUpGPU();
+    } catch (error) {
+      console.warn("GPU warm-up failed; continuing without it", error);
+    }
     this.unpause();
+  };
+
+  // Compile every shader and upload every texture before the first frame.
+  // Otherwise the first car/train/log/etc. to appear stalls a frame while
+  // WebGL compiles its program or uploads its texture (100ms+ on some GPUs).
+  warmUpGPU = async () => {
+    const warmGroup = new Group();
+    for (const node of Object.values(ModelLoader)) {
+      for (const model of Object.values<any>(node?.models ?? {})) {
+        warmGroup.add(model.clone());
+      }
+    }
+    this.scene.world.add(warmGroup);
+
+    // compile() skips invisible objects (e.g. idle particles), so reveal them briefly.
+    const hidden = [];
+    this.scene.traverse((object) => {
+      if (!object.visible) {
+        hidden.push(object);
+        object.visible = true;
+      }
+    });
+
+    const culled = [];
+    const textures = new Set();
+    this.scene.traverse((object) => {
+      const materials = [].concat(object.material ?? []);
+      for (const material of materials) {
+        for (const value of Object.values<any>(material)) {
+          if (value?.isTexture) textures.add(value);
+        }
+      }
+    });
+
+    try {
+      await this.renderer.compileAsync(this.scene, this.camera);
+      for (const texture of textures) {
+        this.renderer.initTexture(texture);
+      }
+      // Draw everything once into a 1x1 viewport so geometry buffers are
+      // uploaded too. Disable culling so off-screen objects are included.
+      this.scene.traverse((object) => {
+        if (object.frustumCulled) {
+          culled.push(object);
+          object.frustumCulled = false;
+        }
+      });
+      const viewport = this.renderer.getViewport(new Vector4());
+      this.renderer.setViewport(0, 0, 1, 1);
+      this.renderer.render(this.scene, this.camera);
+      this.renderer.setViewport(viewport);
+    } finally {
+      for (const object of culled) {
+        object.frustumCulled = true;
+      }
+      for (const object of hidden) {
+        object.visible = false;
+      }
+      this.scene.world.remove(warmGroup);
+    }
   };
 }
