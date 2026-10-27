@@ -81,14 +81,16 @@ export default class Road extends Object3D {
     if (!this.active) {
       return;
     }
-    this.cars.map((car) => this.drive({ dt, player, car }));
+    for (const car of this.cars) {
+      this.drive({ dt, player, car });
+    }
   };
 
   drive = ({ dt, player, car }) => {
     const { hitBy } = player;
     const offset = 11;
 
-    car.mesh.position.x += car.speed;
+    car.mesh.position.x += car.speed * dt;
 
     if (car.mesh.position.x > offset && car.speed > 0) {
       car.mesh.position.x = -offset;

@@ -104,23 +104,23 @@ export default class CrossyPlayer extends Group {
     this.reset();
   }
 
-  moveOnEntity() {
+  moveOnEntity(dtScale = 1) {
     if (!this.ridingOn) {
       return;
     }
 
     // let target = this._hero.ridingOn.mesh.position.x + this._hero.ridingOnOffset;
-    this.position.x += this.ridingOn.speed;
+    this.position.x += this.ridingOn.speed * dtScale;
     this.initialPosition.x = this.position.x;
   }
 
-  moveOnCar() {
+  moveOnCar(dtScale = 1) {
     if (!this.hitBy) {
       return;
     }
 
     let target = this.hitBy.mesh.position.x;
-    this.position.x += this.hitBy.speed;
+    this.position.x += this.hitBy.speed * dtScale;
     if (this.initialPosition) this.initialPosition.x = target;
   }
 
@@ -149,6 +149,12 @@ export default class CrossyPlayer extends Group {
   }
 
   skipPendingMovement() {
+    // Kill the previous hop's timelines; otherwise their not-yet-started
+    // "landing" tweens overwrite the new hop and pull the hero backwards.
+    for (const animation of this.animations) {
+      animation.kill();
+    }
+    this.animations = [];
     if (!this.moving) {
       return;
     }

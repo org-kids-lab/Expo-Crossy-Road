@@ -195,20 +195,22 @@ export default class Water extends Object3D {
     if (!this.active) {
       return;
     }
-    this.entities.map((entity) => this.move({ dt, player, entity }));
+    for (const entity of this.entities) {
+      this.move({ dt, player, entity });
+    }
 
     if (!player.moving && !player.ridingOn) {
-      this.entities.map((entity) =>
-        this.shouldCheckCollision({ dt, player, entity })
-      );
-      this.shouldCheckHazardCollision({ player });
+      for (const entity of this.entities) {
+        this.shouldCheckCollision({ dt, player, entity });
+      }
+      this.shouldCheckHazardCollision({ dt, player });
     }
   };
 
   move = ({ dt, player, entity }) => {
     const offset = 11;
 
-    entity.mesh.position.x += entity.speed;
+    entity.mesh.position.x += entity.speed * dt;
 
     if (entity.mesh.position.x > offset && entity.speed > 0) {
       entity.mesh.position.x = -offset;
@@ -235,18 +237,18 @@ export default class Water extends Object3D {
     return Math.sin(this.sineCount) * 0.08 - 0.2;
   };
 
-  shouldCheckHazardCollision = ({ player }) => {
+  shouldCheckHazardCollision = ({ dt = 1, player }) => {
     if (Math.round(player.position.z) === this.position.z && !player.moving) {
       if (!player.ridingOn) {
         if (player.isAlive) {
           this.onCollide(this.floor, "water");
         } else {
           let y = this.getPlayerSunkenPosition();
-          this.sineCount += this.sineInc;
+          this.sineCount += this.sineInc * dt;
           player.position.y = y;
-          player.rotation.y += 0.01;
+          player.rotation.y += 0.01 * dt;
 
-          player.position.x += this.entities[0].speed;
+          player.position.x += this.entities[0].speed * dt;
         }
       }
     }

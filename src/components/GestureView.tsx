@@ -82,19 +82,18 @@ class GestureView extends Component {
     this.swipeConfig = Object.assign(swipeConfig, props.config);
   }
 
+  // Hop on key press (not release) so keyboard input feels instant.
+  // Ignore auto-repeat so holding a key doesn't spam hops.
   onKeyDown = (e) => {
     const direction = keyMap[e.code];
-    if (direction) {
-      this.props.onResponderGrant();
-    }
+    if (!direction) return;
+    e.preventDefault();
+    if (e.repeat) return;
+    this.props.onResponderGrant();
+    this.props.onSwipe(direction);
   };
 
-  onKeyUp = (e) => {
-    const direction = keyMap[e.code];
-    if (direction) {
-      this.props.onSwipe(direction);
-    }
-  };
+  onKeyUp = () => {};
 
   _handleShouldSetPanResponder = (evt, gestureState) => {
     evt.preventDefault();

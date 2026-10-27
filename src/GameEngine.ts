@@ -19,6 +19,11 @@ import {
   startingRow,
 } from "./GameSettings";
 
+// Movement speeds are tuned for 60 FPS; dtScale = 1 at 60 FPS.
+const FRAME_MS = 1000 / 60;
+// Cap to avoid teleporting/tunneling after a long hitch or tab switch.
+const MAX_DT_SCALE = 3;
+
 const normalizeAngle = (angle) => {
   return Math.atan2(Math.sin(angle), Math.cos(angle));
 };
@@ -105,14 +110,16 @@ export default class Engine {
   };
 
   // Move scene forward
-  forwardScene = () => {
+  forwardScene = (dtScale = 1) => {
+    // Frame-rate independent easing factor
+    const easing = 1 - Math.pow(1 - CAMERA_EASING, dtScale);
     this.scene.world.position.z -=
       (this._hero.position.z - startingRow + this.scene.world.position.z) *
-      CAMERA_EASING;
+      easing;
     // Camera horizontal clamp
     const targetCameraX = Math.max(-3, Math.min(2, -this._hero.position.x));
     this.scene.world.position.x +=
-      (targetCameraX - this.scene.world.position.x) * CAMERA_EASING;
+      (targetCameraX - this.scene.world.position.x) * easing;
 
     // normal camera speed
     if (-this.scene.world.position.z - this.camCount > 1.0) {
@@ -132,17 +139,17 @@ export default class Engine {
     // this.props.setGameState(this.gameState);
   };
 
-  tick = (dt) => {
+  tick = (dtScale = 1) => {
     // this.drive();
 
-    this.gameMap.tick(dt, this._hero);
+    this.gameMap.tick(dtScale, this._hero);
 
     if (!this._hero.moving) {
-      this._hero.moveOnEntity();
-      this._hero.moveOnCar();
+      this._hero.moveOnEntity(dtScale);
+      this._hero.moveOnCar(dtScale);
       this.checkIfUserHasFallenOutOfFrame();
     }
-    this.forwardScene();
+    this.forwardScene(dtScale);
   };
 
   checkIfUserHasFallenOutOfFrame = () => {
@@ -163,15 +170,28 @@ export default class Engine {
     }
   };
 
+  lastFrameTime: number | null = null;
+
   pause() {
     cancelAnimationFrame(this.raf);
   }
 
   unpause() {
-    const render = () => {
+    // Reset so resuming after a pause doesn't produce a huge delta
+    this.lastFrameTime = null;
+    const render = (timestamp?: number) => {
       this.raf = requestAnimationFrame(render);
-      const time = Date.now();
-      this.tick(time);
+      const now =
+        typeof timestamp === "number" ? timestamp : performance.now();
+      const dtScale =
+        this.lastFrameTime == null
+          ? 1
+          : Math.min(
+              Math.max((now - this.lastFrameTime) / FRAME_MS, 0),
+              MAX_DT_SCALE
+            );
+      this.lastFrameTime = now;
+      this.tick(dtScale);
       this.renderer.render(this.scene, this.camera);
 
       // NOTE: At the end of each frame, notify `Expo.GLView` with the below
