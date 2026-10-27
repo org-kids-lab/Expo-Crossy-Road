@@ -32,6 +32,57 @@ I created the models using the open source project [MagicaVoxel](https://ephtrac
 - [THREE.js](https://threejs.org/) for rendering
 - [GSAP](https://greensock.com/) for animating
 
+## Getting started
+
+```sh
+npm install            # or: bun install
+npx expo start --web   # press w, or open http://localhost:8081
+```
+
+`package.json` contains an npm `overrides` entry for `expo-three` → `three`.
+`expo-three@8` still declares `peer three@^0.166.0` while this project uses
+`three@0.182.0`; without the override `npm install` fails with `ERESOLVE`.
+
+Production web build:
+
+```sh
+npx expo export -p web   # outputs to dist/
+npx serve dist
+```
+
+### Controls
+
+| Action | Keyboard | Touch |
+|---|---|---|
+| Hop forward | `↑` / `W` / `Space` | tap or swipe up |
+| Hop back | `↓` / `S` | swipe down |
+| Hop left / right | `←` `→` / `A` `D` | swipe left / right |
+
+Keyboard hops fire on key **press**; holding a key gives a single hop.
+
+### Running in WSL2
+
+If `http://localhost:8081` refuses to connect from the Windows browser, open
+`http://<WSL IP>:8081` instead (the IP is shown as `exp://…` in the Metro
+output), or enable `networkingMode=mirrored` under `[wsl2]` in
+`%USERPROFILE%\.wslconfig` and run `wsl --shutdown`.
+
+If the game runs in slow motion or stutters, check that the browser uses the
+GPU: `chrome://gpu` should report WebGL as *Hardware accelerated*.
+
+## Performance notes
+
+- **Frame-rate independent movement.** The render loop passes `dtScale`
+  (elapsed time ÷ one 60 FPS frame, capped at 3) through `tick`; all
+  per-frame motion (cars, trains, logs, riding, camera easing) is scaled by
+  it. Speeds are tuned for 60 FPS.
+- **GPU warm-up.** `Engine.warmUpGPU()` compiles all shaders, uploads all
+  textures and draws every model once into a 1×1 viewport before the first
+  frame, so new object types don't stall a frame when they first appear.
+- **Hop animations** are GSAP timelines. Starting a new hop kills the
+  previous hop's timelines (`CrossyPlayer.skipPendingMovement`), otherwise
+  the old landing tween pulls the hero backwards.
+
 ## Disclaimer
 
 I am in no way associated with Hipster Whale.
