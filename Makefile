@@ -2,6 +2,9 @@
 .PHONY: help install start start-all fresh build serve prod typecheck lint clean
 
 PORT ?= 8081
+SERVE_PORT ?= 3000
+# First available of WSL / Linux / macOS openers; set OPEN= to disable auto-open.
+OPEN ?= $(firstword $(shell command -v wslview xdg-open open 2>/dev/null))
 
 help: ## Show available commands
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-10s %s\n", $$1, $$2}'
@@ -18,8 +21,12 @@ start-all: ## Start the dev server for all platforms (Expo Go QR code)
 build: ## Production web build into dist/
 	npx expo export -p web
 
-serve: ## Serve the production build from dist/
-	npx --yes serve dist
+serve: ## Serve the production build from dist/ and open it in the browser
+	@# serve picks a random port if SERVE_PORT is busy, so open the URL it prints
+	@npx --yes serve dist -l $(SERVE_PORT) | while IFS= read -r line; do \
+	  echo "$$line"; \
+	  case "$$line" in *"Accepting connections at "*) [ -n "$(OPEN)" ] && $(OPEN) "$${line##* }" & ;; esac; \
+	done
 
 prod: build serve ## Build and serve the production web version
 
