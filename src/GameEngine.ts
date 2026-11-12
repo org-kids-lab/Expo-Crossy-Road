@@ -16,6 +16,7 @@ import {
   CAMERA_EASING,
   DEBUG_CAMERA_CONTROLS,
   groundLevel,
+  MAX_PIXEL_RATIO,
   PI_2,
   sceneColor,
   startingRow,
@@ -38,6 +39,25 @@ export default class Engine {
     }
     if (this.renderer) {
       this.renderer.setSize(width * scale, height * scale);
+    }
+    this.fitCanvasToPixelRatio();
+  };
+
+  // Web only: expo-gl sizes the canvas at full devicePixelRatio and resets it
+  // on every layout change, so this is re-checked each frame (cheap no-op when sized).
+  fitCanvasToPixelRatio = () => {
+    const canvas = this.renderer?.__gl?.canvas;
+    if (!canvas?.clientWidth) return; // native GL has no DOM canvas
+    const ratio = Math.min(Dimensions.get("window").scale, MAX_PIXEL_RATIO);
+    const width = Math.round(canvas.clientWidth * ratio);
+    const height = Math.round(canvas.clientHeight * ratio);
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
+    const target = this.renderer.domElement;
+    if (target.width !== width || target.height !== height) {
+      this.renderer.setSize(width, height);
     }
   };
 
@@ -194,6 +214,7 @@ export default class Engine {
             );
       this.lastFrameTime = now;
       this.tick(dtScale);
+      this.fitCanvasToPixelRatio();
       this.renderer.render(this.scene, this.camera);
 
       // NOTE: At the end of each frame, notify `Expo.GLView` with the below
